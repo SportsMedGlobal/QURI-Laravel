@@ -4,6 +4,8 @@ WORK IN PROGRESS
 
 A Laravel request wrapper for the QURI parser.
 
+More information about the QURI spec and PHP implementation [available here.](https://github.com/theHarvester/QURI)
+
 ## Basic Usage
 
 The QuriRequest object can be loaded into a route with Laravel's service container.
