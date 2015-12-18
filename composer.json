@@ -1,0 +1,25 @@
+{
+    "name": "theharvester/quri-laravel",
+    "description": "A Laravel request wrapper for the QURI parser.",
+    "license": "Apache2",
+    "authors": [
+        {
+            "name": "James Harvey",
+            "email": "james.harvey994@gmail.com"
+        }
+    ],
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/theHarvester/QURI.git"
+        }
+    ],
+    "require": {
+      "BkvFoundry/QURI":"dev-master"
+    },
+    "autoload": {
+        "psr-4": {
+            "TheHarvester\\QuriLaravel\\": "app/"
+        }
+    }
+}
