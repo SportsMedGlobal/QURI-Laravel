@@ -2,12 +2,13 @@
 
 namespace App\Http\Requests;
 
+use BkvFoundry\Quri\Exceptions\ValidationException;
 use BkvFoundry\Quri\Parsed\Expression;
 use BkvFoundry\Quri\Parsed\Operation;
 use BkvFoundry\Quri\Parser;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Database\Query\Builder;
 
 class QuriRequest extends Request
 {
@@ -24,33 +25,30 @@ class QuriRequest extends Request
         }
         $results = Parser::initAndParse($_GET['q']);
         return $this->applyExpressions($builder, $results);
-
     }
 
     /**
      * Apply expressions to a laravel query builder
      *
-     * @param Builder|Model $builder
+     * @param Builder $builder
      * @param Expression $expression
-     * @return Builder|Model
-     * @throws \Exception
+     * @return Builder
+     * @throws ValidationException
      */
     public function applyExpressions($builder, Expression $expression)
     {
-        $and_or = $expression->getType();
+        $andOr = $expression->getType();
 
-        if ($nested_expressions = $expression->getChildExpressions()) {
-            $builder = $builder->where(function ($builder) use ($nested_expressions) {
-                /** @var Expression $expression */
-                foreach ($nested_expressions as $expression) {
+        if ($nestedExpressions = $expression->nestedExpressions()) {
+            $builder = $builder->where(function ($builder) use ($nestedExpressions) {
+                foreach ($nestedExpressions as $expression) {
                     $this->applyExpressions($builder, $expression);
                 }
-            }, null, null, $and_or);
+            }, null, null, $andOr);
         }
-        if ($operations = $expression->getChildOperations()) {
-            /** @var Operation $operation */
+        if ($operations = $expression->operations()) {
             foreach ($operations as $operation) {
-                $builder = $this->apendWhereByOperation($builder, $operation, $and_or);
+                $builder = $this->applyOperation($builder, $operation, $andOr);
             }
         }
         return $builder;
@@ -59,14 +57,15 @@ class QuriRequest extends Request
     /**
      * Append where for a Quri operation
      *
-     * @param $builder
+     * @param Builder $builder
      * @param Operation $operation
-     * @param $and_or
-     * @throws \Exception
+     * @param $andOr
+     * @return Builder
+     * @throws ValidationException
      */
-    protected function apendWhereByOperation($builder, Operation $operation, $and_or)
+    public function applyOperation($builder, Operation $operation, $andOr)
     {
-        switch ($operation->getOperator()) {
+        switch ($operation->operator()) {
             case "eq":
                 $symbol = "=";
                 break;
@@ -88,17 +87,37 @@ class QuriRequest extends Request
             case "like":
                 $symbol = "like";
                 break;
+            case "between":
+                return $builder->whereBetween($operation->fieldName(), $operation->values(), $andOr);
             case "in":
-                return $builder->whereIn($operation->getFieldName(), $operation->getValues(), $and_or);
-                return;
+                return $builder->whereIn($operation->fieldName(), $operation->values(), $andOr);
             case "nin":
-                return $builder->whereNotIn($operation->getFieldName(), $operation->getValues(), $and_or);
-                return;
+                return $builder->whereNotIn($operation->fieldName(), $operation->values(), $andOr);
             default:
-                throw new \Exception("Blah blah blah");
+                throw new ValidationException("QURI string could not be parsed. Operator '{$operation->operator()}' not supported");
         }
-        $value = $operation->getValues();
-        $value = current($value);
-        return $builder->where($operation->getFieldName(), $symbol, $value, $and_or);
+        // joins?
+        if (method_exists($this, "validateValues")) {
+            // TODO needs some work
+            $this->validateValues($operation->fieldName(),$operation->values());
+        }
+        return $builder->where(
+            $this->getRealFieldName($operation->fieldName()),
+            $symbol,
+            $operation->firstValue(),
+            $andOr
+        );
     }
+
+    /**
+     * Gets the real field name from the field name passed in from the user
+     *
+     * @param $fieldName
+     * @return string
+     */
+    public function getRealFieldName($fieldName)
+    {
+        return $fieldName;
+    }
+
 }
