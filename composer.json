@@ -14,7 +14,7 @@
             "url": "https://github.com/theHarvester/QURI.git"
         }
     ],
-    "require": {
+    "require-dev": {
       "BkvFoundry/QURI":"dev-master"
     },
     "autoload": {
