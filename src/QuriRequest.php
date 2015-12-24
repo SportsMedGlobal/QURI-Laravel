@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests;
+namespace TheHarvester\QuriLaravel;
 
 use BkvFoundry\Quri\Exceptions\ValidationException;
 use BkvFoundry\Quri\Parsed\Expression;
