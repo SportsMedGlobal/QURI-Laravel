@@ -19,7 +19,7 @@
     },
     "autoload": {
         "psr-4": {
-            "TheHarvester\\QuriLaravel\\": "app/"
+            "TheHarvester\\QuriLaravel\\": "src/"
         }
     }
 }
