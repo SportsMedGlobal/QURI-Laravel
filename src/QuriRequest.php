@@ -12,6 +12,21 @@ use Illuminate\Database\Query\Builder;
 
 class QuriRequest extends Request
 {
+    protected $relatedConfig = [];
+
+    /**
+     * @param Model|Builder $privilege
+     * @return Model
+     */
+    public function search($privilege)
+    {
+        if (method_exists($privilege, "searchableRelationships")) {
+            $this->relatedConfig = $privilege->searchableRelationships();
+        }
+
+        return $this->apply($privilege);
+    }
+    
     /**
      * Init and apply the query filter based off the 'q' get parameter
      *
