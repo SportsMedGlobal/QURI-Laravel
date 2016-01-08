@@ -7,26 +7,32 @@ use BkvFoundry\Quri\Parsed\Expression;
 use BkvFoundry\Quri\Parsed\Operation;
 use BkvFoundry\Quri\Parser;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
-use Illuminate\Database\Query\Builder;
+use Illuminate\Database\Eloquent\Builder;
 
 class QuriRequest extends Request
 {
     protected $relatedConfig = [];
 
     /**
-     * @param Model|Builder $privilege
+     * @param Model|Builder $model
      * @return Model
      */
-    public function search($privilege)
+    public function search($model)
     {
-        if (method_exists($privilege, "searchableRelationships")) {
-            $this->relatedConfig = $privilege->searchableRelationships();
+        if (method_exists($model, "searchableRelationships")) {
+            $this->relatedConfig = $model->searchableRelationships();
         }
 
-        return $this->apply($privilege);
+        if ($model instanceof Relation) {
+            $this->apply($model->getQuery());
+            return $model;
+        }
+
+        return $this->apply($model);
     }
-    
+
     /**
      * Init and apply the query filter based off the 'q' get parameter
      *
@@ -39,7 +45,9 @@ class QuriRequest extends Request
             return $builder;
         }
         $results = Parser::initAndParse($_GET['q']);
-        return $this->applyExpressions($builder, $results);
+        return $builder->where(function ($builder) use ($results) {
+            $this->applyExpressions($builder, $results);
+        });
     }
 
     /**
@@ -114,7 +122,7 @@ class QuriRequest extends Request
         // joins?
         if (method_exists($this, "validateValues")) {
             // TODO needs some work
-            $this->validateValues($operation->fieldName(),$operation->values());
+            $this->validateValues($operation->fieldName(), $operation->values());
         }
         return $builder->where(
             $this->getRealFieldName($operation->fieldName()),
